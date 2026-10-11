@@ -108,7 +108,15 @@ tmux new -s train
 conda activate bpx_train
 cd ~/mirrorme_rl_train
 
-# Train flat-ground velocity tracking (1024 parallel environments, 3000 iterations)
+# 1. Quick Smoke Test (verifies GPU simulation pipeline in under 1 minute)
+./bpx.sh train \
+  --task bpx_flat \
+  --num_envs 64 \
+  --max_iterations 20 \
+  --run_name smoke_test \
+  --headless
+
+# 2. Full Baseline Run (trains flat-ground velocity tracking in ~20-30 minutes)
 ./bpx.sh train \
   --task bpx_flat \
   --num_envs 1024 \
