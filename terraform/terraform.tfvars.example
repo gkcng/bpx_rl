@@ -1,0 +1,11 @@
+project_id         = "YOUR_GCP_PROJECT_ID"
+region             = "us-central1"
+zone               = "us-central1-a"
+instance_name      = "isaac-sim-trainer"
+machine_type       = "g2-standard-8"
+gpu_type           = "nvidia-l4"
+gpu_count          = 1
+boot_disk_size_gb  = 150
+use_spot           = false # Set to true for ~70% cost savings
+network            = "default"
+allowed_ssh_cidr   = ["0.0.0.0/0"]

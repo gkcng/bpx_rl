@@ -1,0 +1,21 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+# Logs and Checkpoints
+logs/
+checkpoints/
+exported/
+videos/
+*.mp4
+*.pt
+*.onnx
+
+# Python & System
+__pycache__/
+*.py[cod]
+.DS_Store
+*.swp
