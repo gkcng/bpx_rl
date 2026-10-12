@@ -59,11 +59,12 @@ bpx_rl/
    ```
 
 3. **IAM Permissions**:
-   If you are using an account that isn't admin, you will need to grant the following permissions to this account before the terraform will succeed:
+   If you are using an account that isn't admin, you will need to grant the following permissions to this account before the terraform will succeed (and destroy cleanly):
    ```
    Compute Instance Admin (v1)
    Compute Security Admin
    Create Service Accounts
+   Delete Service Accounts (or Service Account Admin)
    IAP-secured Tunnel User
    Project IAM Admin
    Service Account User
