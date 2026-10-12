@@ -111,6 +111,11 @@ bpx_rl/
    - Installs Miniconda and creates the `bpx_train` Python 3.11 environment.
    - Installs Isaac Lab 2.3.0, PyTorch 2.7.0 with CUDA 12.8, and RSL-RL.
 
+   Reboot to make sure nvidia drivers are loaded:
+   ```bash
+   sudo reboot
+   ```
+   
    If conda is not activated:
    ```bash
    source ~/miniconda3/bin/activate                                                                                                             
