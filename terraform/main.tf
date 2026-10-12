@@ -98,10 +98,11 @@ resource "google_compute_firewall" "allow_webrtc" {
 # Compute Engine GPU Instance
 # ==============================================================================
 resource "google_compute_instance" "isaac_sim_node" {
-  name         = var.instance_name
-  machine_type = var.machine_type
-  zone         = var.zone
-  tags         = ["isaac-sim-node"]
+  name                      = var.instance_name
+  machine_type              = var.machine_type
+  zone                      = var.zone
+  tags                      = ["isaac-sim-node"]
+  allow_stopping_for_update = true
 
   boot_disk {
     auto_delete = true
