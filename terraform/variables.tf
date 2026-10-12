@@ -51,14 +51,19 @@ variable "use_spot" {
   default     = false
 }
 
-variable "network" {
-  description = "VPC network name."
+variable "vpc_name" {
+  description = "Name of the dedicated custom VPC."
   type        = string
-  default     = "default"
+  default     = "bpx-training-vpc"
 }
 
-variable "allowed_ssh_cidr" {
-  description = "CIDR range allowed to SSH into the instance."
+variable "subnet_cidr" {
+  description = "CIDR range for the dedicated training subnet."
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "allowed_client_ips" {
+  description = "List of client public IP CIDRs allowed to connect to WebRTC streaming (e.g. [\"203.0.113.19/32\"]). Set in terraform.tfvars."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
 }

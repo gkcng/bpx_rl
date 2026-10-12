@@ -7,5 +7,9 @@ gpu_type           = "nvidia-l4"
 gpu_count          = 1
 boot_disk_size_gb  = 150
 use_spot           = false # Set to true for ~70% cost savings
-network            = "default"
-allowed_ssh_cidr   = ["0.0.0.0/0"]
+vpc_name           = "bpx-training-vpc"
+subnet_cidr        = "10.0.1.0/24"
+
+# Set your public IP CIDR here (run `curl -s https://checkip.amazonaws.com` to find your IP)
+# Example: ["203.0.113.19/32"]
+allowed_client_ips = ["YOUR_PUBLIC_IP/32"]
