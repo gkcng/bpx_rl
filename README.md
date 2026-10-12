@@ -166,7 +166,14 @@ Reattach anytime with `tmux attach -t train`.
 From your **Mac terminal**:
 ```bash
 ssh -i ~/.ssh/google_compute_engine -N -L 6006:localhost:6006 user@<EXTERNAL_IP>
+
+# To never have to type -i ~/.ssh/google_compute_engine again, add this block to your ~/.ssh/config:
+Host gcp-trainer <EXTERNAL_IP>
+  HostName <EXTERNAL_IP>
+  User <USER>
+  IdentityFile ~/.ssh/google_compute_engine
 ```
+
 On the **remote VM**:
 ```bash
 tensorboard --logdir ~/mirrorme_rl_train/logs/bpx_flat --port 6006
@@ -179,22 +186,26 @@ Open [http://localhost:6006](http://localhost:6006) on your Mac to track rewards
 
 You have two methods to view the results:
 
-#### Method A: Live WebRTC 3D Viewport in your Browser (Recommended)
-1. From your **Mac terminal**, establish port tunnels:
+#### Method A: Interactive 3D Stream via Isaac Sim WebRTC Streaming Client (Recommended)
+
+In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)):
+
+1. From your **Mac terminal**, establish SSH port tunnels (including WebRTC media port `47998` and signaling port `8211`):
    ```bash
-   ssh -i ~/.ssh/google_compute_engine -N -L 8011:localhost:8011 -L 8211:localhost:8211 user@<EXTERNAL_IP>
+   ssh -i ~/.ssh/google_compute_engine -N \
+     -L 47998:localhost:47998 \
+     -L 8211:localhost:8211 \
+     -L 8011:localhost:8011 \
+     user@<EXTERNAL_IP>
    ```
-2. On the **remote VM**, start the stream:
+2. On the **remote VM**, start the player:
    ```bash
    conda activate bpx_train
    cd ~/mirrorme_rl_train
    ./bpx.sh play --checkpoint logs/bpx_flat/<RUN_FOLDER>/model_2999.pt --livestream 1 --num_envs 1
    ```
-3. Open Chrome or Safari on your Mac and browse to:
-   ```text
-   http://localhost:8011/streaming/client/
-   ```
-   You will have full real-time interactive 3D control to orbit and zoom around the walking BPX quadruped.
+3. Open the **Isaac Sim WebRTC Streaming Client** on your Mac, enter `127.0.0.1` (port `47998`), and click **Connect**.
+   You will have full real-time interactive 60 FPS 3D control to orbit, pan, and zoom around the walking BPX quadruped.
 
 #### Method B: Render Headless Video (MP4)
 1. On the **remote VM**:
