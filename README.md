@@ -102,7 +102,7 @@ bpx_rl/
 
 1. **SSH into the Instance**:
    ```bash
-   gcloud compute ssh [USER]@isaac-sim-trainer
+   gcloud compute ssh [USER]@isaac-sim-trainer --tunnel-through-iap
    ```
 
 2. **Run Host System Setup**:
@@ -167,15 +167,9 @@ cd ~/mirrorme_rl_train
 Reattach anytime with `tmux attach -t train`.
 
 #### Monitor Training Live via TensorBoard
-From your **Mac terminal**:
+From your **Mac terminal**, establish the secure IAP tunnel (zero public port 22 needed):
 ```bash
-ssh -i ~/.ssh/google_compute_engine -N -L 6006:localhost:6006 user@<EXTERNAL_IP>
-
-# To never have to type -i ~/.ssh/google_compute_engine again, add this block to your ~/.ssh/config:
-Host gcp-trainer <EXTERNAL_IP>
-  HostName <EXTERNAL_IP>
-  User <USER>
-  IdentityFile ~/.ssh/google_compute_engine
+gcloud compute ssh isaac-sim-trainer --tunnel-through-iap -- -N -L 6006:localhost:6006
 ```
 
 On the **remote VM**:
