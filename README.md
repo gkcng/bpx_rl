@@ -115,7 +115,7 @@ bpx_rl/
    ```bash
    sudo reboot
    ```
-   
+
    If conda is not activated:
    ```bash
    source ~/miniconda3/bin/activate                                                                                                             
@@ -160,11 +160,12 @@ cd ~/mirrorme_rl_train
   --headless
 ```
 *Press `Ctrl+B` then `D` to detach from tmux. You can safely disconnect your Mac.*
+Reattach anytime with `tmux attach -t train`.
 
 #### Monitor Training Live via TensorBoard
 From your **Mac terminal**:
 ```bash
-ssh -N -L 6006:localhost:6006 user@<EXTERNAL_IP>
+ssh -i ~/.ssh/google_compute_engine -N -L 6006:localhost:6006 user@<EXTERNAL_IP>
 ```
 On the **remote VM**:
 ```bash
@@ -181,7 +182,7 @@ You have two methods to view the results:
 #### Method A: Live WebRTC 3D Viewport in your Browser (Recommended)
 1. From your **Mac terminal**, establish port tunnels:
    ```bash
-   ssh -N -L 8011:localhost:8011 -L 8211:localhost:8211 user@<EXTERNAL_IP>
+   ssh -i ~/.ssh/google_compute_engine -N -L 8011:localhost:8011 -L 8211:localhost:8211 user@<EXTERNAL_IP>
    ```
 2. On the **remote VM**, start the stream:
    ```bash
