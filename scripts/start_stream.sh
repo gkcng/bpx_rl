@@ -17,9 +17,9 @@ NUM_ENVS="${2:-1}"
 cd "$HOME/mirrorme_rl_train"
 
 echo "===> Launching interactive evaluation with WebRTC streaming enabled..."
-echo "Ensure you have forwarded port 8011 from your Mac:"
-echo "    ssh -N -L 8011:localhost:8011 -L 8211:localhost:8211 user@<VM_IP>"
-echo "Then navigate to: http://localhost:8011/streaming/client/ on your Mac browser."
+echo "Ensure you have Isaac Sim WebRTC Streaming Client installed on your Mac."
+echo "Launch the client, input your server IP address and use the default ports, "
+echo "then press 'Connect'."
 echo "=============================================================================="
 
 ./bpx.sh play \

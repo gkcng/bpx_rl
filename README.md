@@ -1,6 +1,6 @@
 # BPX Quadruped Reinforcement Learning on GCP with Isaac Sim
 
-This repository contains Infrastructure-as-Code (Terraform), automation scripts, and an end-to-end guide to train reinforcement learning locomotion policies for the [MirrorMe BPX Quadruped Robot](https://github.com/mirrormerobotics) remotely on **Google Cloud Platform (GCP)** and visualize the results locally on a Mac or browser.
+This repository contains Infrastructure-as-Code (Terraform), automation scripts, and an end-to-end guide to train reinforcement learning locomotion policies for the [MirrorMe BPX Quadruped Robot](https://github.com/mirrormerobotics) remotely on **Google Cloud Platform (GCP)** and visualize the results locally. It sets up a remote VM with an Nvidia L4, clone and executes the [MirrorMe BPX RL Training Baseline](https://github.com/mirrormerobotics/mirrorme_rl_train). You do not need this repo if you already have a machine to run training; You can use the MirrorMe repo directly.
 
 ---
 
@@ -108,7 +108,9 @@ bpx_rl/
    Upload or run the setup script on the remote VM:
    ```bash
    # Run the environment setup script
-   curl -sSL https://raw.githubusercontent.com/.../setup_remote_vm.sh | bash
+   # curl -sSL https://raw.githubusercontent.com/.../setup_remote_vm.sh | bash
+   git clone https://github.com/gkcng/bpx_rl.git
+   
    # Or run directly if copied:
    bash scripts/setup_remote_vm.sh
    ```
