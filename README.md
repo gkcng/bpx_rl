@@ -188,23 +188,24 @@ You have two methods to view the results:
 
 #### Method A: Interactive 3D Stream via Isaac Sim WebRTC Streaming Client (Recommended)
 
-In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)):
+In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from the [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)):
 
-1. From your **Mac terminal**, establish SSH port tunnels (including WebRTC media port `47998` and signaling port `8211`):
-   ```bash
-   ssh -i ~/.ssh/google_compute_engine -N \
-     -L 47998:localhost:47998 \
-     -L 8211:localhost:8211 \
-     -L 8011:localhost:8011 \
-     user@<EXTERNAL_IP>
-   ```
-2. On the **remote VM**, start the player:
+1. **Firewall Requirement**:
+   Ensure the WebRTC ports (`tcp/udp:47998-48012`, `tcp:8211`, `tcp/udp:49100`) are permitted in your GCP firewall. (The Terraform configuration in `terraform/main.tf` creates this rule automatically as `allow_webrtc`).
+
+2. **Launch the player on the remote VM**:
    ```bash
    conda activate bpx_train
    cd ~/mirrorme_rl_train
    ./bpx.sh play --checkpoint logs/bpx_flat/<RUN_FOLDER>/model_2999.pt --livestream 1 --num_envs 1
    ```
-3. Open the **Isaac Sim WebRTC Streaming Client** on your Mac, enter `127.0.0.1` (port `47998`), and click **Connect**.
+
+3. **Connect from your Mac**:
+   Open the **Isaac Sim WebRTC Streaming Client** app on your Mac:
+   * **Server / IP**: Enter your VM's public IP address (`<EXTERNAL_IP>`)
+   * **Port**: `47998`
+   * Click **Connect**
+
    You will have full real-time interactive 60 FPS 3D control to orbit, pan, and zoom around the walking BPX quadruped.
 
 #### Method B: Render Headless Video (MP4)

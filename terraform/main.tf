@@ -48,6 +48,26 @@ resource "google_compute_firewall" "allow_ssh" {
   description   = "Allow SSH ingress to Isaac Sim training node"
 }
 
+# Firewall rule for Isaac Sim WebRTC Streaming Client ingress
+resource "google_compute_firewall" "allow_webrtc" {
+  name    = "isaac-sim-allow-webrtc"
+  network = var.network
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8011", "8211", "47998-48012", "49100"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["47998-48012", "49100"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["isaac-sim-node"]
+  description   = "Allow WebRTC streaming traffic for Isaac Sim Streaming Client"
+}
+
 # Compute Engine GPU Instance
 resource "google_compute_instance" "isaac_sim_node" {
   name         = var.instance_name
