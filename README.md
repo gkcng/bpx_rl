@@ -62,6 +62,7 @@ bpx_rl/
    If you are using an account that isn't admin, you will need to grant the following permissions to this account before the terraform will succeed (and destroy cleanly):
    ```
    Compute Instance Admin (v1)
+   Compute Network Admin (required to create custom VPCs and subnets)
    Compute Security Admin
    Create Service Accounts
    Delete Service Accounts (or Service Account Admin)
