@@ -103,6 +103,7 @@ resource "google_compute_instance" "isaac_sim_node" {
   zone                      = var.zone
   tags                      = ["isaac-sim-node"]
   allow_stopping_for_update = true
+  desired_status            = var.instance_status
 
   boot_disk {
     auto_delete = true

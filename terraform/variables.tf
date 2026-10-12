@@ -51,6 +51,12 @@ variable "use_spot" {
   default     = false
 }
 
+variable "instance_status" {
+  description = "Desired power state of the VM: 'RUNNING' to keep it powered on, or 'TERMINATED' to stop it (pauses GPU/CPU billing)."
+  type        = string
+  default     = "RUNNING"
+}
+
 variable "vpc_name" {
   description = "Name of the dedicated custom VPC."
   type        = string

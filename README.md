@@ -241,11 +241,19 @@ This produces:
 
 ### Phase 6: Clean Up / Manage VM Costs
 
-- **Pause the VM** (stops compute and GPU charges, keeps SSD disk):
+- **Stop / Pause the VM via Terraform** (stops GPU and compute billing, preserves SSD disk & checkpoints):
+  ```bash
+  cd terraform
+  terraform apply -var="instance_status=TERMINATED"
+  ```
+  *(To start it back up later, run: `terraform apply -var="instance_status=RUNNING"`)*
+
+- **Or Pause via gcloud**:
   ```bash
   gcloud compute instances stop isaac-sim-trainer --zone=us-central1-a
   ```
-- **Destroy Infrastructure** when finished:
+
+- **Destroy Entire Infrastructure** when finished:
   ```bash
   cd terraform
   terraform destroy
