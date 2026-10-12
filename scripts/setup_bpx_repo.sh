@@ -17,16 +17,12 @@ cd "$TARGET_DIR"
 echo "===> Updating submodules (BPX robot asset URDF/meshes)..."
 git submodule update --init --recursive
 
-echo "===> Installing BPX package..."
-./bpx.sh install
-
-echo "===> Testing task registration..."
-python scripts/list_envs.py
-
-echo "===> Validating runtime contract (Actor 45-D, Critic 48-D, Action 12-D)..."
-./bpx.sh contract --headless
+echo "===> Running official MIRRORME environment setup (Isaac Lab, PyTorch, RSL-RL)..."
+./bpx.sh setup bpx_train
 
 echo "=============================================================================="
-echo "BPX RL is ready! To start training, run:"
-echo "    ./bpx.sh train --task bpx_flat --num_envs 1024 --max_iterations 3000 --run_name baseline --headless"
+echo "BPX RL setup complete! Activate your environment with:"
+echo "    conda activate bpx_train"
+echo "To test or train:"
+echo "    ./bpx.sh train --task bpx_flat --num_envs 64 --max_iterations 20 --headless"
 echo "=============================================================================="

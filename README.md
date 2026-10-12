@@ -104,38 +104,33 @@ bpx_rl/
    gcloud compute ssh [USER]@isaac-sim-trainer
    ```
 
-2. **Run Automated System Setup**:
-   Upload or run the setup script on the remote VM:
+2. **Run Host System Setup**:
+   Clone your repository and prepare the Ubuntu VM host:
    ```bash
-   # Run the environment setup script
-   # curl -sSL https://raw.githubusercontent.com/.../setup_remote_vm.sh | bash
    git clone https://github.com/gkcng/bpx_rl.git
-   
-   # Or run directly if copied:
+   cd bpx_rl
    bash scripts/setup_remote_vm.sh
    ```
    This script:
-   - Installs OpenGL, Vulkan, and headless display dependencies.
-   - Installs Miniconda and creates the `bpx_train` Python 3.11 environment.
-   - Installs Isaac Lab 2.3.0, PyTorch 2.7.0 with CUDA 12.8, and RSL-RL.
+   - Installs OpenGL, Vulkan, and headless display dependencies (`libglu1-mesa`, `libegl1`, etc.).
+   - Verifies NVIDIA drivers (and installs them if missing).
+   - Installs Miniconda and configures `conda-forge` as default to avoid Anaconda TOS prompts.
 
-   Reboot to make sure nvidia drivers are loaded:
+   Reboot to make sure NVIDIA drivers are active in the kernel:
    ```bash
    sudo reboot
    ```
 
-   If conda is not activated:
+   *(After reconnecting, verify GPU with `nvidia-smi`)*.
+
+3. **Setup BPX RL Repository & Isaac Lab Environment**:
    ```bash
-   source ~/miniconda3/bin/activate                                                                                                             
-   conda init bash                                                                                                                              
-   source ~/.bashrc  
-   ```   
-3. **Setup BPX RL Repository**:
-   ```bash
-   conda activate bpx_train
+   cd ~/bpx_rl
    bash scripts/setup_bpx_repo.sh
    ```
-   This clones `mirrorme_rl_train`, initializes BPX URDF/meshes, installs the package, and verifies the 45-D Actor / 48-D Critic contract:
+   This script:
+   - Clones `mirrorme_rl_train` and initializes submodules (URDF & mesh assets).
+   - Runs the official upstream `./bpx.sh setup bpx_train` which creates the `bpx_train` environment, installs Isaac Lab 2.3.0, PyTorch CUDA 12.8, RSL-RL, and verifies the 45-D Actor / 48-D Critic contract:
    ```text
    [PASS] Actor 45-D, Critic 48-D, Action 12-D runtime contract.
    ```

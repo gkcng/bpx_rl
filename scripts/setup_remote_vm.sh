@@ -36,7 +36,7 @@ else
     echo "NVIDIA driver installed. A system reboot may be required before continuing."
 fi
 
-echo "===> [3/6] Setting up Miniconda..."
+echo "===> [3/3] Setting up Miniconda & configuring conda-forge..."
 if [ ! -d "$HOME/miniconda3" ]; then
     wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
     bash /tmp/miniconda.sh -b -p "$HOME/miniconda3"
@@ -48,37 +48,13 @@ export PATH="$HOME/miniconda3/bin:$PATH"
 "$HOME/miniconda3/bin/conda" init bash
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
 
-# Set conda-forge as the primary channel to bypass Anaconda commercial TOS entirely
+# Configure conda-forge as default channel to bypass commercial Anaconda TOS prompts
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda config --set notify_outdated_conda false
 conda config --set auto_update_conda false
 
-echo "===> [4/6] Creating Python 3.11 environment (bpx_train) from conda-forge..."
-if conda info --envs | grep -q "bpx_train"; then
-    echo "Environment 'bpx_train' already exists. Activating..."
-else
-    conda create -n bpx_train python=3.11 -c conda-forge --override-channels -y
-fi
-conda activate bpx_train
-
-echo "===> [5/6] Installing Isaac Lab 2.3.0, PyTorch, and RSL-RL..."
-python -m pip install --upgrade pip
-python -m pip install "setuptools<81" wheel
-python -m pip install --no-build-isolation flatdict==4.0.1
-
-# Install Isaac Lab with Isaac Sim & RSL-RL
-python -m pip install "isaaclab[isaacsim,rsl-rl]==2.3.0" \
-  --extra-index-url https://pypi.nvidia.com
-
-# PyTorch 2.7.0 with CUDA 12.8 wheels
-python -m pip install -U torch==2.7.0 torchvision==0.22.0 \
-  --index-url https://download.pytorch.org/whl/cu128
-
-echo "===> [6/6] Verifying PyTorch and Isaac Lab installation..."
-python -c "from importlib.metadata import version; import torch; print('Isaac Lab:', version('isaaclab')); print('PyTorch:', torch.__version__); print('CUDA Available:', torch.cuda.is_available())"
-
 echo "=============================================================================="
-echo "Setup completed successfully! Activate your environment with:"
-echo "    conda activate bpx_train"
+echo "VM host setup complete!"
+echo "Next step: Run 'bash scripts/setup_bpx_repo.sh' to install BPX RL & Isaac Lab."
 echo "=============================================================================="
