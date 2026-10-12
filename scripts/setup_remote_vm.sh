@@ -48,7 +48,10 @@ export PATH="$HOME/miniconda3/bin:$PATH"
 "$HOME/miniconda3/bin/conda" init bash
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
 
-# Configure conda-forge as default channel to bypass commercial Anaconda TOS prompts
+# Set conda-forge as the ONLY channel and remove Anaconda's 'defaults' channel completely.
+# This prevents Anaconda from prompting for Terms of Service (TOS) during conda create.
+conda config --set custom_multichannels.defaults "" 2>/dev/null || true
+conda config --remove channels defaults 2>/dev/null || true
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda config --set notify_outdated_conda false

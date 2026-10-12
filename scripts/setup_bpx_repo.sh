@@ -17,6 +17,11 @@ cd "$TARGET_DIR"
 echo "===> Updating submodules (BPX robot asset URDF/meshes)..."
 git submodule update --init --recursive
 
+echo "===> Ensuring conda channel is strictly conda-forge (removes Anaconda defaults TOS)..."
+conda config --remove channels defaults 2>/dev/null || true
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+
 echo "===> Running official MIRRORME environment setup (Isaac Lab, PyTorch, RSL-RL)..."
 ./bpx.sh setup bpx_train
 
