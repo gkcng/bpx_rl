@@ -7,12 +7,12 @@ This repository contains Infrastructure-as-Code (Terraform), automation scripts,
 ## Architecture Overview
 
 ```
- ┌──────────────────────┐              SSH Tunnels              ┌──────────────────────────────────────────────┐
- │   Local Client       │  ◄──────────────────────────────────► │         GCP Compute Engine (G2)              │
- │  (MacBook Pro)       │     • Port 8011/8211 (WebRTC Stream)  │  • Machine: g2-standard-8 (8 vCPU, 32GB RAM) │
- │                      │     • Port 6006 (TensorBoard)         │  • GPU: 1x NVIDIA L4 (24GB VRAM)             │
- │ • Safari / Chrome    │                                       │  • Ubuntu 22.04 LTS (NVIDIA Driver 550+)     │
- │ • Terminal (SSH)     │                                       │  • Isaac Sim / Isaac Lab 2.3.0 + RSL-RL      │
+ ┌──────────────────────┐                                       ┌──────────────────────────────────────────────┐
+ │   Local Client       │  ◄── SSH Tunnel: Port 6006 ─────────► │         GCP Compute Engine (G2)              │
+ │  (MacBook Pro)       │      (TensorBoard Metrics)            │  • Machine: g2-standard-8 (8 vCPU, 32GB RAM) │
+ │                      │                                       │  • GPU: 1x NVIDIA L4 (24GB VRAM)             │
+ │ • Terminal / Browser │  ◄── Direct WebRTC / UDP: 47998 ────► │  • Ubuntu 22.04 LTS (NVIDIA Driver 550+)     │
+ │ • Streaming Client   │      (Interactive 3D Video & Control) │  • Isaac Sim / Isaac Lab 2.3.0 + RSL-RL      │
  └──────────────────────┘                                       └──────────────────────────────────────────────┘
 ```
 
@@ -188,10 +188,12 @@ You have two methods to view the results:
 
 #### Method A: Interactive 3D Stream via Isaac Sim WebRTC Streaming Client (Recommended)
 
-In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from the [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)):
+In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from the [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)).
+
+> **How WebRTC works here**: WebRTC uses a **Signaling Channel** (TCP ports `8011`/`8211` for session handshake) and a high-throughput **Media Channel** (UDP port `47998` for low-latency 60 FPS video frames and input events). Direct connection to the VM's public IP over UDP is required because standard SSH tunnels only forward TCP.
 
 1. **Firewall Requirement**:
-   Ensure the WebRTC ports (`tcp/udp:47998-48012`, `tcp:8211`, `tcp/udp:49100`) are permitted in your GCP firewall. (The Terraform configuration in `terraform/main.tf` creates this rule automatically as `allow_webrtc`).
+   Ensure WebRTC ports (`tcp/udp:47998-48012`, `tcp:8011`, `tcp:8211`, `tcp/udp:49100`) are permitted in your GCP firewall. (The Terraform configuration in `terraform/main.tf` creates this rule automatically as `allow_webrtc`).
 
 2. **Launch the player on the remote VM**:
    ```bash
