@@ -14,10 +14,14 @@ sudo apt-get install -y \
   cmake \
   libgl1-mesa-glx \
   libegl1 \
+  libglu1-mesa \
+  libsm6 \
+  libxext6 \
   libxrandr2 \
   libxinerama1 \
   libxcursor1 \
   libxi6 \
+  libxxf86vm1 \
   ffmpeg \
   tmux \
   curl \
