@@ -190,10 +190,14 @@ You have two methods to view the results:
 
 In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from the [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)).
 
-> **How WebRTC works here**: WebRTC uses a **Signaling Channel** (TCP ports `8011`/`8211` for session handshake) and a high-throughput **Media Channel** (UDP port `47998` for low-latency 60 FPS video frames and input events). Direct connection to the VM's public IP over UDP is required because standard SSH tunnels only forward TCP.
+> **How WebRTC works with the client**:
+> - **Signaling Port**: **`49100` (TCP)** handles session handshake and SDP negotiation.
+> - **Streaming / Media Port**: **`47998` (UDP)** handles low-latency 60 FPS video frames and user input events.
+>
+> Direct connection to the VM's public IP over UDP is required because standard SSH tunnels only forward TCP.
 
 1. **Firewall Requirement**:
-   Ensure WebRTC ports (`tcp/udp:47998-48012`, `tcp:8011`, `tcp:8211`, `tcp/udp:49100`) are permitted in your GCP firewall. (The Terraform configuration in `terraform/main.tf` creates this rule automatically as `allow_webrtc`).
+   Ensure WebRTC ports (`tcp:49100`, `udp:47998-48012`) are permitted in your GCP firewall. (The Terraform configuration in `terraform/main.tf` creates this rule automatically as `allow_webrtc`).
 
 2. **Launch the player on the remote VM**:
    ```bash
@@ -205,7 +209,8 @@ In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC
 3. **Connect from your Mac**:
    Open the **Isaac Sim WebRTC Streaming Client** app on your Mac:
    * **Server / IP**: Enter your VM's public IP address (`<EXTERNAL_IP>`)
-   * **Port**: `47998`
+   * **Signaling Port**: `49100`
+   * **Streaming Port**: `47998`
    * Click **Connect**
 
    You will have full real-time interactive 60 FPS 3D control to orbit, pan, and zoom around the walking BPX quadruped.
