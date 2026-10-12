@@ -44,18 +44,17 @@ export PATH="$HOME/miniconda3/bin:$PATH"
 "$HOME/miniconda3/bin/conda" init bash
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
 
-# Auto-accept Anaconda Terms of Service / channel agreements non-interactively
+# Set conda-forge as the primary channel to bypass Anaconda commercial TOS entirely
+conda config --add channels conda-forge
+conda config --set channel_priority strict
 conda config --set notify_outdated_conda false
 conda config --set auto_update_conda false
-conda config --set channel_priority flexible
-# Disable interactive prompts and accept TOS/licenses non-interactively
-conda config --set report_errors false 2>/dev/null || true
 
-echo "===> [4/6] Creating Python 3.11 environment (bpx_train)..."
+echo "===> [4/6] Creating Python 3.11 environment (bpx_train) from conda-forge..."
 if conda info --envs | grep -q "bpx_train"; then
     echo "Environment 'bpx_train' already exists. Activating..."
 else
-    conda create -n bpx_train python=3.11 -y
+    conda create -n bpx_train python=3.11 -c conda-forge --override-channels -y
 fi
 conda activate bpx_train
 
