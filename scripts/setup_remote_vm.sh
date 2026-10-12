@@ -39,8 +39,9 @@ if [ ! -d "$HOME/miniconda3" ]; then
     rm /tmp/miniconda.sh
 fi
 
-# Activate conda
+# Activate and persist conda across all shell sessions
 export PATH="$HOME/miniconda3/bin:$PATH"
+"$HOME/miniconda3/bin/conda" init bash
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
 
 echo "===> [4/6] Creating Python 3.11 environment (bpx_train)..."

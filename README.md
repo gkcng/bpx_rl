@@ -58,12 +58,36 @@ bpx_rl/
    use_spot   = true  # Optional: Set to true for ~70% cost reduction (~$0.25/hr vs $0.85/hr)
    ```
 
-3. **Deploy Infrastructure**:
+3. **IAM Permissions**:
+   If you are using an account that isn't admin, you will need to grant the following permissions to this account before the terraform will succeed:
+   ```
+   Compute Instance Admin (v1)
+   Compute Security Admin
+   Create Service Accounts
+   IAP-secured Tunnel User
+   Project IAM Admin
+   Service Account User
+   Storage Object Admin
+   ```
+
+4. **Deploy Infrastructure**:
    ```bash
    terraform init
    terraform apply
    ```
-   Take note of the output `instance_external_ip`.
+
+   ```bash
+   Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+   Outputs:
+
+   instance_external_ip = "xxx.xxx.xxx.xxx"
+   instance_name = "isaac-sim-trainer"
+   livestream_tunnel_command = "ssh -N -L 8011:localhost:8011 -L 8211:localhost:8211 -L 6006:localhost:6006 ${instance_external_ip}"
+   ssh_command = "ssh ${instance_external_ip}"   
+   ```
+
+   Take note of the output `instance_external_ip` and `instance_name`.
 
 ---
 
@@ -71,7 +95,7 @@ bpx_rl/
 
 1. **SSH into the Instance**:
    ```bash
-   ssh user@<EXTERNAL_IP>
+   gcloud compute ssh [USER]@isaac-sim-trainer
    ```
 
 2. **Run Automated System Setup**:
@@ -87,6 +111,12 @@ bpx_rl/
    - Installs Miniconda and creates the `bpx_train` Python 3.11 environment.
    - Installs Isaac Lab 2.3.0, PyTorch 2.7.0 with CUDA 12.8, and RSL-RL.
 
+   If conda is not activated:
+   ```bash
+   source ~/miniconda3/bin/activate                                                                                                             
+   conda init bash                                                                                                                              
+   source ~/.bashrc  
+   ```   
 3. **Setup BPX RL Repository**:
    ```bash
    conda activate bpx_train
