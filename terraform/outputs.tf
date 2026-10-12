@@ -13,7 +13,16 @@ output "ssh_command" {
   value       = "ssh ${google_compute_instance.isaac_sim_node.network_interface[0].access_config[0].nat_ip}"
 }
 
-output "livestream_tunnel_command" {
-  description = "SSH tunnel command to forward WebRTC streaming and TensorBoard ports to your Mac."
-  value       = "ssh -N -L 8011:localhost:8011 -L 8211:localhost:8211 -L 6006:localhost:6006 ${google_compute_instance.isaac_sim_node.network_interface[0].access_config[0].nat_ip}"
+output "tensorboard_tunnel_command" {
+  description = "SSH tunnel command to forward TensorBoard port (6006) to your Mac."
+  value       = "ssh -i ~/.ssh/google_compute_engine -N -L 6006:localhost:6006 ${google_compute_instance.isaac_sim_node.network_interface[0].access_config[0].nat_ip}"
+}
+
+output "webrtc_client_connection" {
+  description = "Connection settings for the Isaac Sim WebRTC Streaming Client desktop app."
+  value = {
+    server_ip      = google_compute_instance.isaac_sim_node.network_interface[0].access_config[0].nat_ip
+    signaling_port = 49100
+    streaming_port = 47998
+  }
 }

@@ -77,14 +77,19 @@ bpx_rl/
    ```
 
    ```bash
-   Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+   Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 
    Outputs:
 
    instance_external_ip = "xxx.xxx.xxx.xxx"
    instance_name = "isaac-sim-trainer"
-   livestream_tunnel_command = "ssh -N -L 8011:localhost:8011 -L 8211:localhost:8211 -L 6006:localhost:6006 ${instance_external_ip}"
-   ssh_command = "ssh ${instance_external_ip}"   
+   ssh_command = "ssh xxx.xxx.xxx.xxx"
+   tensorboard_tunnel_command = "ssh -i ~/.ssh/google_compute_engine -N -L 6006:localhost:6006 xxx.xxx.xxx.xxx"
+   webrtc_client_connection = {
+     "server_ip"      = "xxx.xxx.xxx.xxx"
+     "signaling_port" = 49100
+     "streaming_port" = 47998
+   }
    ```
 
    Take note of the output `instance_external_ip` and `instance_name`.
@@ -188,7 +193,8 @@ You have two methods to view the results:
 
 #### Method A: Interactive 3D Stream via Isaac Sim WebRTC Streaming Client (Recommended)
 
-In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS (downloadable from the [NVIDIA Isaac Sim Documentation](https://docs.isaacsim.omniverse.nvidia.com/)).
+In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC Streaming Client** desktop app for macOS:
+- **Download for macOS**: [Isaac Sim WebRTC Streaming Client (NVIDIA Official Download)](https://docs.isaacsim.omniverse.nvidia.com/latest/installation/download.html#isaac-sim-latest-release)
 
 > **How WebRTC works with the client**:
 > - **Signaling Port**: **`49100` (TCP)** handles session handshake and SDP negotiation.
