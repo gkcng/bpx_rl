@@ -141,15 +141,15 @@ The reward function balances velocity tracking, body stability, natural gait gen
 ### 4.1 Command Tracking
 * **Linear Velocity Tracking (`track_lin_vel_xy_exp`, weight: $+2.0$)**:
 
-  $$
-  R_{\text{lin}} = \exp\left(-\frac{\|v_{\text{xy}} - v_{\text{xy}}^{\text{cmd}}\|^2}{0.40^2}\right)
-  $$
+$$
+R_{\text{lin}} = \exp\left(-\frac{\|v_{\text{xy}} - v_{\text{xy}}^{\text{cmd}}\|^2}{0.40^2}\right)
+$$
 
 * **Yaw Angular Velocity Tracking (`track_ang_vel_z_exp`, weight: $+1.0$)**:
 
-  $$
-  R_{\text{yaw}} = \exp\left(-\frac{(\omega_z - \omega_z^{\text{cmd}})^2}{0.40^2}\right)
-  $$
+$$
+R_{\text{yaw}} = \exp\left(-\frac{(\omega_z - \omega_z^{\text{cmd}})^2}{0.40^2}\right)
+$$
 
 ### 4.2 Body Stability & Posture
 * **Base Height (`base_height_l2`, weight: $-3.0$)**: Penalizes squared error between current torso height and target height ($0.48\text{ m}$).
