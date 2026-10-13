@@ -9,7 +9,7 @@ TARGET_DIR="$HOME/mirrorme_rl_train"
 
 if [ ! -d "$TARGET_DIR" ]; then
     echo "===> Cloning mirrorme_rl_train..."
-    git clone https://github.com/mirrormerobotics/mirrorme_rl_train.git "$TARGET_DIR"
+    git clone https://github.com/gkcng/mirrorme_rl_train.git "$TARGET_DIR"
 fi
 
 cd "$TARGET_DIR"
