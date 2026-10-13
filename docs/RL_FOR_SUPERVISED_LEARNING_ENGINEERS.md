@@ -26,9 +26,9 @@ In robotics, we cannot know the optimal target joint angle $y^*$. Instead, the a
 
 1. **Explore**: At state $s$, the Actor predicts mean joint targets $\mu_\theta(s)$, but adds small random Gaussian noise:
 
-   $$
-   a \sim \mathcal{N}(\mu_\theta(s), \sigma^2)
-   $$
+$$
+a \sim \mathcal{N}(\mu_\theta(s), \sigma^2)
+$$
 
 2. **Step**: The robot executes action $a$ in Isaac Sim.
 3. **Score**: The environment computes a scalar reward $R$ (e.g. $+2.0$ for matching speed, $-200.0$ if it trips and falls).
@@ -69,9 +69,9 @@ flowchart TD
 * **Output**: A single scalar $V(s)$ estimating the total discounted points the robot is expected to collect from state $s$ until the end of the episode.
 * **Training Objective**: Standard **Mean Squared Error (MSE)** against the actual cumulative returns observed in the simulator:
 
-  $$
-  \mathcal{L}_{\text{critic}} = \frac{1}{2} \left( V_\phi(s) - R_{\text{actual}} \right)^2
-  $$
+$$
+\mathcal{L}_{\text{critic}} = \frac{1}{2} \left( V_\phi(s) - R_{\text{actual}} \right)^2
+$$
 
   The Critic is literally a supervised regression model predicting the robot's future score.
 
@@ -80,9 +80,9 @@ flowchart TD
 * **Output**: The 12 target motor positions.
 * **Training Objective**: Maximize the probability of actions that yielded a positive **Advantage**:
 
-  $$
-  \text{Advantage} = \text{Actual Score Received} - \text{Score the Critic Predicted}
-  $$
+$$
+\text{Advantage} = \text{Actual Score Received} - \text{Score the Critic Predicted}
+$$
 
 ---
 
@@ -100,9 +100,9 @@ The answer is **credit assignment under high variance**:
   The Critic evaluates the upside-down state and predicts: *"From this terrible position, you normally get $-200$ points."*
   Because the Actor's recovery action resulted in $-180$ points, the Advantage is:
 
-  $$
-  \text{Advantage} = (-180) - (-200) = \mathbf{+20}
-  $$
+$$
+\text{Advantage} = (-180) - (-200) = \mathbf{+20}
+$$
 
   The algorithm recognizes: *"Even though the total score was low, this action was $+20$ points better than baseline!"* The Actor is correctly rewarded.
 
@@ -114,7 +114,7 @@ The Critic serves as a **dynamic baseline** that removes state-dependent bias an
 
 **Yes, both networks are updated in the same training loop, but their weights are completely independent.**
 
-In multi-task supervised learning, you might train a model with a composite loss like $L_{\text{total}} = L_{\text{classification}} + L_{\text{bounding\_box}}$. PPO does something very similar:
+In multi-task supervised learning, you might train a model with a composite loss like $L_{\text{total}} = L_{\text{classification}} + L_{\text{bounding-box}}$. PPO does something very similar:
 
 $$
 \mathcal{L}_{\text{total}} = \underbrace{\mathcal{L}_{\text{actor}}(\theta)}_{\text{depends ONLY on Actor } \theta} + c_1 \cdot \underbrace{\mathcal{L}_{\text{critic}}(\phi)}_{\text{depends ONLY on Critic } \phi} - c_2 \cdot \underbrace{\mathcal{H}(\theta)}_{\text{Entropy bonus}}
@@ -129,17 +129,17 @@ When PyTorch executes `total_loss.backward()`:
 
 1. For Critic weights $\phi$:
 
-   $$
-   \frac{\partial \mathcal{L}_{\text{total}}}{\partial \phi} = c_1 \frac{\partial \mathcal{L}_{\text{critic}}}{\partial \phi} + 0
-   $$
+$$
+\frac{\partial \mathcal{L}_{\text{total}}}{\partial \phi} = c_1 \frac{\partial \mathcal{L}_{\text{critic}}}{\partial \phi} + 0
+$$
 
    The Actor's performance has **zero mathematical effect** on the Critic's weight updates.
 
 2. For Actor weights $\theta$:
 
-   $$
-   \frac{\partial \mathcal{L}_{\text{total}}}{\partial \theta} = \frac{\partial \mathcal{L}_{\text{actor}}}{\partial \theta} - c_2 \frac{\partial \mathcal{H}}{\partial \theta} + 0
-   $$
+$$
+\frac{\partial \mathcal{L}_{\text{total}}}{\partial \theta} = \frac{\partial \mathcal{L}_{\text{actor}}}{\partial \theta} - c_2 \frac{\partial \mathcal{H}}{\partial \theta} + 0
+$$
 
    The Critic's MSE loss has **zero mathematical effect** on the Actor's weight updates.
 
@@ -190,9 +190,9 @@ In RL, because training data must be generated dynamically:
 By running **4,096 robots simultaneously on the GPU**:
 * In just **24 simulation steps** (about 0.48 seconds of simulated time), the system collects:
 
-  $$
-  4,096 \text{ robots} \times 24 \text{ steps} = 98,304 \text{ transitions}
-  $$
+$$
+4,096 \text{ robots} \times 24 \text{ steps} = 98,304 \text{ transitions}
+$$
 
 * This provides a massive, diverse batch capturing robots walking, turning, falling, recovering, and standing still.
 * The system runs 5 epochs of SGD/Adam on this batch, updates both Actor and Critic, discards the data, and collects a fresh batch with the newly improved policy.
@@ -310,8 +310,8 @@ class ActorCritic(nn.Module):
 * At deployment time, **we discard $\sigma$ and sampling entirely**.
 * The exported model (`bpx_flat_45.onnx` / `bpx_flat_45.pt`) is purely a **deterministic feed-forward MLP**:
 
-  $$
-  \mathbf{q}_{\text{target}} = \mathbf{q}_{\text{default}} + 0.25 \times \text{MLP}_{\text{Actor}}(\text{Sensors})
-  $$
+$$
+\mathbf{q}_{\text{target}} = \mathbf{q}_{\text{default}} + 0.25 \times \text{MLP}_{\text{Actor}}(\text{Sensors})
+$$
 
 * It takes the 45 sensor readings and directly outputs the 12 deterministic mean joint targets at 50 Hz.
