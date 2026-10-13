@@ -104,7 +104,11 @@ The policy learns omnidirectional velocity tracking in the base frame:
 
 ### 3.2 Action Space (`ActionsCfg`)
 The action $a_t \in \mathbb{R}^{12}$ represents **residual joint position setpoints**:
-$$q_{\text{target}} = q_{\text{default}} + 0.25 \times \text{clip}(a_t, -100, 100)$$
+
+$$
+q_{\text{target}} = q_{\text{default}} + 0.25 \times \text{clip}(a_t, -100, 100)
+$$
+
 Using residual actions centered on the default pose speeds up exploration and ensures that small initial network outputs keep the robot standing safely.
 
 ### 3.3 Observation Spaces (`ObservationsCfg`)
@@ -136,9 +140,16 @@ The reward function balances velocity tracking, body stability, natural gait gen
 
 ### 4.1 Command Tracking
 * **Linear Velocity Tracking (`track_lin_vel_xy_exp`, weight: $+2.0$)**:
-  $$R_{\text{lin}} = \exp\left(-\frac{\|v_{xy} - v_{xy}^{\text{cmd}}\|^2}{0.40^2}\right)$$
+
+  $$
+  R_{\text{lin}} = \exp\left(-\frac{\|v_{\text{xy}} - v_{\text{xy}}^{\text{cmd}}\|^2}{0.40^2}\right)
+  $$
+
 * **Yaw Angular Velocity Tracking (`track_ang_vel_z_exp`, weight: $+1.0$)**:
-  $$R_{\text{yaw}} = \exp\left(-\frac{(\omega_z - \omega_z^{\text{cmd}})^2}{0.40^2}\right)$$
+
+  $$
+  R_{\text{yaw}} = \exp\left(-\frac{(\omega_z - \omega_z^{\text{cmd}})^2}{0.40^2}\right)
+  $$
 
 ### 4.2 Body Stability & Posture
 * **Base Height (`base_height_l2`, weight: $-3.0$)**: Penalizes squared error between current torso height and target height ($0.48\text{ m}$).
@@ -147,7 +158,7 @@ The reward function balances velocity tracking, body stability, natural gait gen
 * **Roll/Pitch Velocity (`ang_vel_xy_l2`, weight: $-0.05$)**: Dampens roll and pitch rotations.
 
 ### 4.3 Foot Contacts & Gait Shaping
-* **Feet Air Time (`quadruped_feet_air_time`, weight: $+0.25$)**: Rewards foot swing duration $(t_{\text{air}} - 0.35\text{ s})$ upon touchdown.BPX evaluates motion norm including yaw rate so turning in place properly rewards stepping.
+* **Feet Air Time (`quadruped_feet_air_time`, weight: $+0.25$)**: Rewards foot swing duration $(t_{\text{air}} - 0.35\text{ s})$ upon touchdown. BPX evaluates motion norm including yaw rate so turning in place properly rewards stepping.
 * **Swing Foot Clearance (`swing_foot_clearance`, weight: $+0.04$)**: Rewards swing feet for lifting off the ground up to $0.05\text{ m}$ during commanded motion.
 * **Foot Slipping (`feet_slide`, weight: $-0.20$)**: Penalizes tangential foot velocity during contact.
 * **Excessive Contact Force (`feet_contact_force`, weight: $-2.0 \times 10^{-4}$)**: Penalizes foot impact forces exceeding $120\text{ N}$.
@@ -155,7 +166,7 @@ The reward function balances velocity tracking, body stability, natural gait gen
 
 ### 4.4 Energy & Smoothness
 * **Action Rate (`action_rate_l2`, weight: $-0.10$)**: Penalizes changes between consecutive actions $\|a_t - a_{t-1}\|^2$.
-* **Mechanical Power (`joint_power_l1`, weight: $-2.0 \times 10^{-5}$)**: Penalizes $|\tau \cdot \dot{q}|$.
+* **Mechanical Power (`joint_power_l1`, weight: $-2.0 \times 10^{-5}$)**: Penalizes $\vert \tau \cdot \dot{q} \vert$.
 * **Joint Torques (`joint_torques_l2`, weight: $-1.0 \times 10^{-5}$)**: Penalizes squared actuator effort.
 * **Joint Acceleration (`joint_acc_l2`, weight: $-2.0 \times 10^{-6}$)**: Penalizes high joint accelerations.
 * **Leg Posture Deviation (`leg_posture_deviation_l1`, weight: $-0.12$)**: Encourages pitch and knee joints to remain near nominal walking pose, preventing unnatural straight-leg locking or deep crouching.

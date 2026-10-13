@@ -25,7 +25,11 @@ In standard supervised regression, if your network predicts $\hat{y} = 12.5$ and
 In robotics, we cannot know the optimal target joint angle $y^*$. Instead, the algorithm relies on **trial and error guided by rewards**:
 
 1. **Explore**: At state $s$, the Actor predicts mean joint targets $\mu_\theta(s)$, but adds small random Gaussian noise:
-   $$a \sim \mathcal{N}(\mu_\theta(s), \sigma^2)$$
+
+   $$
+   a \sim \mathcal{N}(\mu_\theta(s), \sigma^2)
+   $$
+
 2. **Step**: The robot executes action $a$ in Isaac Sim.
 3. **Score**: The environment computes a scalar reward $R$ (e.g. $+2.0$ for matching speed, $-200.0$ if it trips and falls).
 4. **Update**:
@@ -33,7 +37,10 @@ In robotics, we cannot know the optimal target joint angle $y^*$. Instead, the a
    * If the outcome was **worse than expected**, take a gradient step that makes action $a$ **less likely**.
 
 Mathematically, the policy gradient looks very much like a weighted classification loss:
-$$\nabla_\theta \mathcal{L}_{\text{actor}} \approx -\sum \nabla_\theta \log \pi_\theta(a \mid s) \times \underbrace{\text{Advantage}}_{\text{"How much better than average was this action?"}}$$
+
+$$
+\nabla_\theta \mathcal{L}_{\text{actor}} \approx -\sum \nabla_\theta \log \pi_\theta(a \mid s) \times \underbrace{\text{Advantage}}_{\text{"How much better than average was this action?"}}
+$$
 
 ---
 
@@ -61,14 +68,21 @@ flowchart TD
 * **Input**: The state $s$ (48 dimensions, including privileged simulator ground truth).
 * **Output**: A single scalar $V(s)$ estimating the total discounted points the robot is expected to collect from state $s$ until the end of the episode.
 * **Training Objective**: Standard **Mean Squared Error (MSE)** against the actual cumulative returns observed in the simulator:
-  $$\mathcal{L}_{\text{critic}} = \frac{1}{2} \left( V_\phi(s) - R_{\text{actual}} \right)^2$$
+
+  $$
+  \mathcal{L}_{\text{critic}} = \frac{1}{2} \left( V_\phi(s) - R_{\text{actual}} \right)^2
+  $$
+
   The Critic is literally a supervised regression model predicting the robot's future score.
 
 ### The Actor is the Controller
 * **Input**: The deployable state $s$ (45 dimensions from real sensors).
 * **Output**: The 12 target motor positions.
 * **Training Objective**: Maximize the probability of actions that yielded a positive **Advantage**:
-  $$\text{Advantage} = \text{Actual Score Received} - \text{Score the Critic Predicted}$$
+
+  $$
+  \text{Advantage} = \text{Actual Score Received} - \text{Score the Critic Predicted}
+  $$
 
 ---
 
@@ -85,7 +99,11 @@ The answer is **credit assignment under high variance**:
 * **Scenario With a Critic**:
   The Critic evaluates the upside-down state and predicts: *"From this terrible position, you normally get $-200$ points."*
   Because the Actor's recovery action resulted in $-180$ points, the Advantage is:
-  $$\text{Advantage} = (-180) - (-200) = \mathbf{+20}$$
+
+  $$
+  \text{Advantage} = (-180) - (-200) = \mathbf{+20}
+  $$
+
   The algorithm recognizes: *"Even though the total score was low, this action was $+20$ points better than baseline!"* The Actor is correctly rewarded.
 
 The Critic serves as a **dynamic baseline** that removes state-dependent bias and dramatically reduces variance.
@@ -98,7 +116,9 @@ The Critic serves as a **dynamic baseline** that removes state-dependent bias an
 
 In multi-task supervised learning, you might train a model with a composite loss like $L_{\text{total}} = L_{\text{classification}} + L_{\text{bounding\_box}}$. PPO does something very similar:
 
-$$\mathcal{L}_{\text{total}} = \underbrace{\mathcal{L}_{\text{actor}}(\theta)}_{\text{depends ONLY on Actor } \theta} + c_1 \cdot \underbrace{\mathcal{L}_{\text{critic}}(\phi)}_{\text{depends ONLY on Critic } \phi} - c_2 \cdot \underbrace{\mathcal{H}(\theta)}_{\text{Entropy bonus}}$$
+$$
+\mathcal{L}_{\text{total}} = \underbrace{\mathcal{L}_{\text{actor}}(\theta)}_{\text{depends ONLY on Actor } \theta} + c_1 \cdot \underbrace{\mathcal{L}_{\text{critic}}(\phi)}_{\text{depends ONLY on Critic } \phi} - c_2 \cdot \underbrace{\mathcal{H}(\theta)}_{\text{Entropy bonus}}
+$$
 
 ### Why Gradients Do Not Interfere
 The Actor and Critic have completely separate neural network weights:
@@ -106,20 +126,34 @@ The Actor and Critic have completely separate neural network weights:
 * **Critic parameters ($\phi$)**: $48 \to 512 \to 256 \to 128 \to 1$
 
 When PyTorch executes `total_loss.backward()`:
+
 1. For Critic weights $\phi$:
-   $$\frac{\partial \mathcal{L}_{\text{total}}}{\partial \phi} = c_1 \frac{\partial \mathcal{L}_{\text{critic}}}{\partial \phi} + 0$$
+
+   $$
+   \frac{\partial \mathcal{L}_{\text{total}}}{\partial \phi} = c_1 \frac{\partial \mathcal{L}_{\text{critic}}}{\partial \phi} + 0
+   $$
+
    The Actor's performance has **zero mathematical effect** on the Critic's weight updates.
+
 2. For Actor weights $\theta$:
-   $$\frac{\partial \mathcal{L}_{\text{total}}}{\partial \theta} = \frac{\partial \mathcal{L}_{\text{actor}}}{\partial \theta} - c_2 \frac{\partial \mathcal{H}}{\partial \theta} + 0$$
+
+   $$
+   \frac{\partial \mathcal{L}_{\text{total}}}{\partial \theta} = \frac{\partial \mathcal{L}_{\text{actor}}}{\partial \theta} - c_2 \frac{\partial \mathcal{H}}{\partial \theta} + 0
+   $$
+
    The Critic's MSE loss has **zero mathematical effect** on the Actor's weight updates.
 
 ### The Crucial `.detach()` Guardrail
 Notice that the Advantage formula uses the Critic's prediction:
-$$\text{Advantage} = R_{\text{actual}} - V_\phi(s)$$
+
+$$
+\text{Advantage} = R_{\text{actual}} - V_\phi(s)
+$$
 
 If you directly plugged this into the Actor loss, backpropagation through the Actor loss would attempt to alter the Critic's weights to make the advantage bigger, corrupting the Critic!
 
 To prevent this, RSL-RL explicitly **detaches** the Critic's values:
+
 ```python
 # Critic predicts expected future return
 value_pred = critic(critic_observations)
@@ -155,10 +189,13 @@ In RL, because training data must be generated dynamically:
 
 By running **4,096 robots simultaneously on the GPU**:
 * In just **24 simulation steps** (about 0.48 seconds of simulated time), the system collects:
-  $$4,096 \text{ robots} \times 24 \text{ steps} = 98,304 \text{ transitions}$$
+
+  $$
+  4,096 \text{ robots} \times 24 \text{ steps} = 98,304 \text{ transitions}
+  $$
+
 * This provides a massive, diverse batch capturing robots walking, turning, falling, recovering, and standing still.
 * The system runs 5 epochs of SGD/Adam on this batch, updates both Actor and Critic, discards the data, and collects a fresh batch with the newly improved policy.
-
 
 ---
 
@@ -204,15 +241,21 @@ How do we compute **log-probabilities** ($\log \pi(a \mid s)$) for a simple full
 ### 9.2 The Mathematical Formula
 For a single motor joint with predicted mean $\mu$ and standard deviation $\sigma$, the probability density of executing action $a$ is:
 
-$$p(a) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(a - \mu)^2}{2\sigma^2} \right)$$
+$$
+p(a) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(a - \mu)^2}{2\sigma^2} \right)
+$$
 
 Taking the natural logarithm:
 
-$$\log p(a) = -\frac{1}{2} \left[ \frac{(a - \mu)^2}{\sigma^2} + 2\log\sigma + \log(2\pi) \right]$$
+$$
+\log p(a) = -\frac{1}{2} \left[ \frac{(a - \mu)^2}{\sigma^2} + 2\log\sigma + \log(2\pi) \right]
+$$
 
 For all 12 independent motor joints, the total log-probability is the sum across joints:
 
-$$\log \pi(\mathbf{a} \mid \mathbf{s}) = \sum_{i=1}^{12} \log p(a_i \mid \mu_i, \sigma_i)$$
+$$
+\log \pi(\mathbf{a} \mid \mathbf{s}) = \sum_{i=1}^{12} \log p(a_i \mid \mu_i, \sigma_i)
+$$
 
 Notice the term $(a - \mu)^2$:
 * It is simply the **squared error (MSE)** between the sampled exploration action $a$ and the network's predicted mean $\mu$.
@@ -266,5 +309,9 @@ class ActorCritic(nn.Module):
 * During training, stochastic sampling ($\sigma$) is essential for discovering effective walking gaits.
 * At deployment time, **we discard $\sigma$ and sampling entirely**.
 * The exported model (`bpx_flat_45.onnx` / `bpx_flat_45.pt`) is purely a **deterministic feed-forward MLP**:
-  $$\mathbf{q}_{\text{target}} = \mathbf{q}_{\text{default}} + 0.25 \times \text{MLP}_{\text{Actor}}(\text{Sensors})$$
+
+  $$
+  \mathbf{q}_{\text{target}} = \mathbf{q}_{\text{default}} + 0.25 \times \text{MLP}_{\text{Actor}}(\text{Sensors})
+  $$
+
 * It takes the 45 sensor readings and directly outputs the 12 deterministic mean joint targets at 50 Hz.
