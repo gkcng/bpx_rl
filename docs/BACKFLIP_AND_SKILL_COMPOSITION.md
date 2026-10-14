@@ -141,10 +141,22 @@ The reward function enforces a clean, disciplined backflip broken down into 4 ke
 * **Landing Heading Alignment (`landing_heading`, weight $+2.0$)**:
 
   $$
-  R_{\text{heading}} = \exp\left(-\frac{\psi^2}{0.35^2}\right) \cdot \mathbb{I}(\text{phase} \ge 0.80)
+  R_{\text{heading}} = \exp\left(-\frac{\Delta\psi^2}{0.35^2}\right) \cdot \mathbb{I}(\text{phase} \ge 0.80)
   $$
 
-  Rewards landing facing the exact same forward direction ($\psi \approx 0$) as spawn.
+  Rewards landing facing the exact same forward direction ($\Delta\psi = \psi_{\text{landing}} - \psi_{\text{spawn}} \approx 0$) as initial spawn.
+* **Bilateral Kinematic Symmetry (`bilateral_symmetry`, weight $-0.1$)**:
+  Enforces left-right limb coordination:
+  $$
+  R_{\text{sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (q_{\text{roll}, L} + q_{\text{roll}, R})^2 + (q_{\text{pitch}, L} - q_{\text{pitch}, R})^2 + (q_{\text{knee}, L} - q_{\text{knee}, R})^2 \right]
+  $$
+  Because roll axes mirror each other across the sagittal plane ($q_{\text{roll}, L} = -q_{\text{roll}, R}$), summing them penalizes asymmetry. Equal pitch and knee angles ensure balanced takeoff thrust and landing impact absorption.
+* **Bilateral Torque Effort Symmetry (`bilateral_torque_symmetry`, weight $-1.0\times 10^{-5}$)**:
+  Penalizes left-vs-right torque discrepancies:
+  $$
+  R_{\tau\text{-sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (\tau_{\text{roll}, L} + \tau_{\text{roll}, R})^2 + (\tau_{\text{pitch}, L} - \tau_{\text{pitch}, R})^2 + (\tau_{\text{knee}, L} - \tau_{\text{knee}, R})^2 \right]
+  $$
+  Prevents the network from favoring one side's actuators, distributing mechanical workload equally across all 12 motor gearboxes to prevent unilateral gear wear and motor overheating.
 
 #### C. Spot Landing (Fix for Horizontal Drift)
 * **Spot Landing Drift (`landing_spot_drift`, weight $-2.0$)**:
@@ -161,21 +173,45 @@ During the final touchdown window ($\text{phase} \ge 0.85$):
 * **Joint Velocity Dampening (`landing_joint_vel`, weight $-0.01$)**: Penalizes residual joint velocity $-\|\dot{q}\|^2$ to eliminate scrambling.
 * **Stance Pose Recovery (`landing_nominal_pose`, weight $-0.2$)**: Penalizes joint deviation from default standing posture $[0.0, 0.8, -1.5]\text{ rad}$ to settle into a firm, stable stance.
 
-### 4.3 Progressive Difficulty Curriculum
-To prevent the robot from repeatedly falling before discovering the 360-degree rotation, the environment includes a **Progressive Difficulty Curriculum** across iterations 0 to 3,000:
+#### E. Anti-Stalling & Inversion Guarantees (Addressing Failure to Flip)
+Quadruped policies often discover a "cowardly" local optimum where standing still or crouching safely avoids twist, drift, or hard landing penalties. Two forcing functions eliminate this:
+1. **Flight Grounded Feet Penalty (`flight_grounded_feet`, weight $-2.0$)**:
+   $$
+   R_{\text{grounded}} = -N_{\text{feet\_contact}} \cdot \mathbb{I}(0.35 \le \text{phase} < 0.70)
+   $$
+   Penalizes having feet on the floor during the ballistic flight phase, compelling the robot to commit to liftoff.
+2. **Failure to Invert Penalty (`failure_to_invert`, weight $-6.0$)**:
+   $$
+   R_{\text{invert}} = -\mathbb{I}(g_z < 0.0) \cdot \mathbb{I}(0.45 \le \text{phase} < 0.65)
+   $$
+   Heavily penalizes the policy if the robot has not reached an inverted torso orientation (projected gravity $g_z > 0$) by mid-flight.
+3. **Mid-Flight Termination (`mid_flight_fail`)**:
+   At $\text{phase} = 0.55$, if the robot is not inverted ($g_z < -0.2$), the episode terminates immediately with a $-200.0$ penalty.
 
-* **Iterations 0 – 1,000 (Early Discovery Phase)**:
-  * Launch thrust threshold starts at $v_z > 1.0\text{ m/s}$ (half-effort hop).
-  * Apex clearance starts at $h > 0.55\text{ m}$ (just above nominal $0.48\text{ m}$ stance).
-  * Angular rotation rate starts at $-\omega_y > 3.5\text{ rad/s}$ (gentle rotation).
-  * PPO rapidly discovers that tucking the legs creates backward angular velocity and receives positive reinforcement without repeatedly crashing.
-* **Iterations 1,000 – 3,000 (Ramping Difficulty)**:
-  * Target launch thrust steadily ramps $1.0 \to 2.0\text{ m/s}$.
-  * Target apex clearance ramps $0.55 \to 0.70\text{ m}$.
-  * Target angular rate ramps $3.5 \to 7.0\text{ rad/s}$.
-  * The policy is compelled to generate progressively more explosive leg thrust and tighter tucks.
-* **Iterations 3,000 – 5,000 (Full Mastery)**:
-  * Maximum difficulty: Only full-power launch ($v_z > 2.0\text{ m/s}$), high apex ($h > 0.70\text{ m}$), rapid tuck ($-\omega_y > 7.0\text{ rad/s}$), and upright foot landing receive maximum rewards.
+#### F. Full $360^\circ$ Heading Randomization & Relative Landing Alignment
+* **Spawn Randomization**: Initial heading is sampled uniformly across $[-\pi, \pi]$ (`yaw: (-math.pi, math.pi)`).
+* **Relative Heading Tracking**: The environment caches $\psi_0$ at episode reset and computes the wrapped angular error $\Delta\psi = \text{atan2}(\sin(\psi - \psi_0), \cos(\psi - \psi_0))$, ensuring the policy learns to land facing whichever arbitrary direction it started in.
+
+### 4.3 Dynamic Curriculum & Transition-Based Auto-Scaling
+To support arbitrary batch scaling (e.g. from 1,024 to 8,192 or 16,384 parallel environments), curriculum progression is computed against **Total Accumulated Transitions** rather than a fixed iteration counter:
+
+$$
+\text{Total Transitions} = \text{common\_step\_counter} \times N_{\text{envs}}
+$$
+
+The curriculum spans from $0$ to **$150\text{ Million Transitions}$** ($\approx 760$ iterations at $N_{\text{envs}}=8,192$, or $\approx 1,500$ iterations at $N_{\text{envs}}=4,096$):
+
+1. **Buoyant Gravity Assistance (`ramp_gravity_assistance`)**:
+   * Starts with an upward buoyant acceleration $a_{\text{assist}} = +4.90\text{ m/s}^2$ applied directly to the torso.
+   * The robot effectively experiences $0.5\times$ Earth gravity (Mars-like), providing "training wheels" so random explorations easily achieve liftoff and rotation.
+   * Smoothly decays to $0.0\text{ m/s}^2$ (full Earth gravity) by $150\text{M}$ transitions.
+2. **Progressive Reward Targets**:
+   * **Launch Thrust $v_z$**: Ramps from $1.0\text{ m/s} \to 2.0\text{ m/s}$.
+   * **Apex Clearance $h$**: Ramps from $0.55\text{ m} \to 0.70\text{ m}$.
+   * **Angular Pitch Rate $\omega_y$**: Ramps from $3.5\text{ rad/s} \to 7.0\text{ rad/s}$.
+3. **Full Physical Autonomy ($> 150\text{M}$ Transitions)**:
+   * Training wheels are completely gone ($1.0\times$ Earth gravity).
+   * Policy must independently generate all explosive torque, stick the single-axis landing, and settle firmly into stance.
 
 ### 4.4 Active Domain Randomization & Reset Perturbations (Fix for Repetitive Motions)
 To ensure the policy learns a robust, adaptive maneuver rather than memorizing a single rigid trajectory:
@@ -187,7 +223,7 @@ To ensure the policy learns a robust, adaptive maneuver rather than memorizing a
    * Base payload mass: $\mathcal{U}(-1.5, +2.5)\text{ kg}$
    * Center of Mass (CoM) displacement: $\pm 3.5\text{ cm}$ in $X, Y, Z$.
 2. **Per-Episode Reset Perturbations (Every 1.6 Seconds)**:
-   * **Root Pose Jitter**: $X, Y \in [-0.15, 0.15]\text{ m}$; Yaw $\in [-0.25, 0.25]\text{ rad}$ (forces directional heading awareness).
+   * **Root Pose Jitter**: $X, Y \in [-0.15, 0.15]\text{ m}$; Yaw $\in [-\pi, \pi]\text{ rad}$ (full $360^\circ$ omnidirectional spawn).
    * **Initial Root Velocity**: $v_{xy} \in [-0.20, 0.20]\text{ m/s}$; Roll, Pitch, Yaw rates $\in [-0.15, 0.15]\text{ rad/s}$.
    * **Joint Jitter**: Initial joint angles scaled by $[0.92, 1.08]$ with random joint velocities $[-0.25, 0.25]\text{ rad/s}$.
 
