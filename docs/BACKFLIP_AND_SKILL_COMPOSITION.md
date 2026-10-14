@@ -203,7 +203,7 @@ At $\text{phase} = 0.55$, if the robot is not inverted ($g_z < -0.2$), the episo
 To support arbitrary batch scaling (e.g. from 1,024 to 8,192 or 16,384 parallel environments), curriculum progression is computed against **Total Accumulated Transitions** rather than a fixed iteration counter:
 
 $$
-\text{Total Transitions} = \text{common\_step\_counter} \times N_{\text{envs}}
+`\text{Total Transitions} = \text{common\_step\_counter} \times N_{\text{envs}}`
 $$
 
 The curriculum spans from $0$ to **$150\text{ Million Transitions}$** ($\approx 760$ iterations at $N_{\text{envs}}=8,192$, or $\approx 1,500$ iterations at $N_{\text{envs}}=4,096$):
