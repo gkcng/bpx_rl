@@ -1,6 +1,6 @@
-# Backflips and Multi-Skill Composition for the BPX Quadruped
+# Backflips: Training Architecture, Rewards, and Curriculum for the BPX Quadruped
 
-This document explains the physical and mathematical challenges of training acrobatic maneuvers (such as backflips), outlines three architectural solutions for composing multiple robot skills, details the progressive difficulty curriculum, and explains how to run the dedicated `tasks/acrobatics/` package with precision landing rewards and domain randomization.
+This repository focuses on **training the standalone `bpx_backflip` acrobatic policy** in Isaac Lab. This document details the physical challenges of backflips, explains the dedicated `tasks/acrobatics/` architecture, formulates the precision rewards and bilateral symmetry constraints, describes the transition-based auto-scaling curriculum, and provides CLI instructions for training and deployment export.
 
 ---
 
@@ -25,11 +25,14 @@ Attempting to train a single unconditioned policy on both objectives results in 
 
 ---
 
-## 2. Architectural Solutions for Multi-Skill Robots
+## 2. Multi-Skill Composition (Conceptual Reference)
 
-To support both locomotion and acrobatic skills on physical hardware, roboticists use three standard patterns:
+> [!NOTE]
+> **Scope Clarification**: The composition architectures below are conceptual reference patterns for downstream deployment on the physical robot. They are **not implemented in this repository**. This repository strictly focuses on training the independent, high-performance `bpx_backflip` policy.
 
-### Solution 1: State Machine of Specialized Policies (Industry Standard)
+When integrating both locomotion and acrobatics into an onboard production robot, engineering teams typically choose one of three downstream deployment patterns:
+
+### Solution 1: State Machine of Specialized Policies (Industry Standard Pattern)
 
 Used by commercial quadruped systems (such as Boston Dynamics Spot and Unitree):
 
@@ -44,34 +47,29 @@ flowchart TD
     Flip -->|"Executes for 1.6s, then yields to Walk"| Hardware
 ```
 
-* **Concept**: Train `bpx_flat` and `bpx_backflip` as separate tasks in Isaac Lab.
-* **Onboard Deployment**: The C++ onboard software loads both `bpx_flat.onnx` and `bpx_backflip.onnx`.
-* **Execution**: Walking runs continuously. When the user commands a backflip, execution switches to `bpx_backflip.onnx` for $1.6\text{ s}$. Once the feet touch down upright, execution smoothly transitions back to `bpx_flat.onnx`.
+* **Concept**: Train `bpx_flat` and `bpx_backflip` as completely separate, decoupled tasks in Isaac Lab (which this repository does).
+* **Downstream Deployment**: The onboard C++ execution loop loads both exported `bpx_flat.onnx` and `bpx_backflip.onnx` engines.
+* **Switching Logic**: Locomotion runs by default. When the operator triggers the backflip action, control yields to `bpx_backflip.onnx` for $1.6\text{ s}$ ($80$ control ticks). Once the policy hits its stabilized stance, control transitions back to `bpx_flat.onnx`.
 
 ---
 
-### Solution 2: Command-Conditioned Multi-Task Policy
+### Solution 2: Command-Conditioned Multi-Task Policy (Alternative Architecture)
 
 Analogous to prompt-conditioning in language models:
+* Adds a discrete skill mode vector to the policy observation (e.g. `[1, 0]` for walk, `[0, 1]` for flip).
+* In simulation, masks reward terms according to the commanded mode:
 
-* **Observation**: Add a discrete one-hot skill mode vector to the input:
-  * Mode `[1, 0]`: Locomotion mode.
-  * Mode `[0, 1]`: Backflip mode.
-* **Reward Masking in Simulation**:
+$$
+\mathcal{R}_{\text{step}} = c_{\text{walk}} \cdot \mathcal{R}_{\text{walk}} + c_{\text{flip}} \cdot \mathcal{R}_{\text{flip}}
+$$
 
-  $$
-  \mathcal{R}_{\text{step}} = c_{\text{walk}} \cdot \mathcal{R}_{\text{walk}} + c_{\text{flip}} \cdot \mathcal{R}_{\text{flip}}
-  $$
-
-* **Trade-off**: Requires a larger neural network capacity to prevent catastrophic forgetting of walking gaits during high-torque jump exploration.
+* Requires a substantially larger neural network to avoid catastrophic forgetting of walking gaits during high-torque explosive exploration.
 
 ---
 
-### Solution 3: Hierarchical Reinforcement Learning
+### Solution 3: Hierarchical Reinforcement Learning (Alternative Architecture)
 
-A two-level control architecture:
-* **Low-Level Skills**: A frozen library of specialized policies (`walk`, `backflip`, `stairs`, `crawl`).
-* **High-Level Manager**: A neural network running at $5\text{ Hz}$ that selects which low-level skill to activate based on terrain and mission commands.
+A two-level control framework where a low-frequency ($5\text{ Hz}$) planner network selects between frozen low-level policy primitives (`walk`, `backflip`, `stairs`, `crawl`) based on terrain perception.
 
 ---
 
@@ -132,40 +130,44 @@ The reward function enforces a clean, disciplined backflip broken down into 4 ke
 
 #### B. Single-Axis Pitch Discipline (Fix for Corkscrew Twisting / Off-Axis Heading)
 * **Flight Twist Penalty (`flight_twist_penalty`, weight $-0.05$)**:
+Strictly penalizes roll and yaw rotation rates during flight, forcing the rotation to remain purely within the sagittal plane around the Y-axis:
 
-  $$
-  R_{\text{twist}} = -(\omega_x^2 + \omega_z^2) \cdot \mathbb{I}(0.15 \le \text{phase} < 0.85)
-  $$
+$$
+R_{\text{twist}} = -(\omega_x^2 + \omega_z^2) \cdot \mathbb{I}(0.15 \le \text{phase} < 0.85)
+$$
 
-  Strictly penalizes roll and yaw rotation rates during flight, forcing the rotation to remain purely within the sagittal plane around the Y-axis.
 * **Landing Heading Alignment (`landing_heading`, weight $+2.0$)**:
+Rewards landing facing the exact same forward direction ($\Delta\psi = \psi_{\text{landing}} - \psi_{\text{spawn}} \approx 0$) as initial spawn:
 
-  $$
-  R_{\text{heading}} = \exp\left(-\frac{\Delta\psi^2}{0.35^2}\right) \cdot \mathbb{I}(\text{phase} \ge 0.80)
-  $$
+$$
+R_{\text{heading}} = \exp\left(-\frac{\Delta\psi^2}{0.35^2}\right) \cdot \mathbb{I}(\text{phase} \ge 0.80)
+$$
 
-  Rewards landing facing the exact same forward direction ($\Delta\psi = \psi_{\text{landing}} - \psi_{\text{spawn}} \approx 0$) as initial spawn.
 * **Bilateral Kinematic Symmetry (`bilateral_symmetry`, weight $-0.1$)**:
-  Enforces left-right limb coordination:
-  $$
-  R_{\text{sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (q_{\text{roll}, L} + q_{\text{roll}, R})^2 + (q_{\text{pitch}, L} - q_{\text{pitch}, R})^2 + (q_{\text{knee}, L} - q_{\text{knee}, R})^2 \right]
-  $$
-  Because roll axes mirror each other across the sagittal plane ($q_{\text{roll}, L} = -q_{\text{roll}, R}$), summing them penalizes asymmetry. Equal pitch and knee angles ensure balanced takeoff thrust and landing impact absorption.
+Enforces left-right limb coordination:
+
+$$
+R_{\text{sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (q_{\text{roll}, L} + q_{\text{roll}, R})^2 + (q_{\text{pitch}, L} - q_{\text{pitch}, R})^2 + (q_{\text{knee}, L} - q_{\text{knee}, R})^2 \right]
+$$
+
+Because roll axes mirror each other across the sagittal plane ($q_{\text{roll}, L} = -q_{\text{roll}, R}$), summing them penalizes asymmetry. Equal pitch and knee angles ensure balanced takeoff thrust and landing impact absorption.
+
 * **Bilateral Torque Effort Symmetry (`bilateral_torque_symmetry`, weight $-1.0\times 10^{-5}$)**:
-  Penalizes left-vs-right torque discrepancies:
-  $$
-  R_{\tau\text{-sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (\tau_{\text{roll}, L} + \tau_{\text{roll}, R})^2 + (\tau_{\text{pitch}, L} - \tau_{\text{pitch}, R})^2 + (\tau_{\text{knee}, L} - \tau_{\text{knee}, R})^2 \right]
-  $$
-  Prevents the network from favoring one side's actuators, distributing mechanical workload equally across all 12 motor gearboxes to prevent unilateral gear wear and motor overheating.
+Penalizes left-vs-right torque discrepancies:
+
+$$
+R_{\tau\text{-sym}} = -\sum_{\text{pair} \in \{\text{front}, \text{hind}\}} \left[ (\tau_{\text{roll}, L} + \tau_{\text{roll}, R})^2 + (\tau_{\text{pitch}, L} - \tau_{\text{pitch}, R})^2 + (\tau_{\text{knee}, L} - \tau_{\text{knee}, R})^2 \right]
+$$
+
+Prevents the network from favoring one side's actuators, distributing mechanical workload equally across all 12 motor gearboxes to prevent unilateral gear wear and motor overheating.
 
 #### C. Spot Landing (Fix for Horizontal Drift)
 * **Spot Landing Drift (`landing_spot_drift`, weight $-2.0$)**:
+Penalizes $(x, y)$ horizontal displacement away from the starting origin during touchdown, compelling the policy to jump vertically and flip in-place rather than lunging backward:
 
-  $$
-  R_{\text{spot}} = -\|p_{\text{xy}} - p_{\text{xy}}^{\text{origin}}\|^2 \cdot \mathbb{I}(\text{phase} \ge 0.80)
-  $$
-
-  Penalizes $(x, y)$ horizontal displacement away from the starting origin during touchdown, compelling the policy to jump vertically and flip in-place rather than lunging backward.
+$$
+R_{\text{spot}} = -\|p_{\text{xy}} - p_{\text{xy}}^{\text{origin}}\|^2 \cdot \mathbb{I}(\text{phase} \ge 0.80)
+$$
 
 #### D. Sticking the Landing (Fix for Bounce & Leg Scrambling)
 During the final touchdown window ($\text{phase} \ge 0.85$):
@@ -175,18 +177,23 @@ During the final touchdown window ($\text{phase} \ge 0.85$):
 
 #### E. Anti-Stalling & Inversion Guarantees (Addressing Failure to Flip)
 Quadruped policies often discover a "cowardly" local optimum where standing still or crouching safely avoids twist, drift, or hard landing penalties. Two forcing functions eliminate this:
+
 1. **Flight Grounded Feet Penalty (`flight_grounded_feet`, weight $-2.0$)**:
-   $$
-   R_{\text{grounded}} = -N_{\text{feet\_contact}} \cdot \mathbb{I}(0.35 \le \text{phase} < 0.70)
-   $$
-   Penalizes having feet on the floor during the ballistic flight phase, compelling the robot to commit to liftoff.
+Penalizes having feet on the floor during the ballistic flight phase, compelling the robot to commit to liftoff:
+
+$$
+R_{\text{grounded}} = -N_{\text{feet\_contact}} \cdot \mathbb{I}(0.35 \le \text{phase} < 0.70)
+$$
+
 2. **Failure to Invert Penalty (`failure_to_invert`, weight $-6.0$)**:
-   $$
-   R_{\text{invert}} = -\mathbb{I}(g_z < 0.0) \cdot \mathbb{I}(0.45 \le \text{phase} < 0.65)
-   $$
-   Heavily penalizes the policy if the robot has not reached an inverted torso orientation (projected gravity $g_z > 0$) by mid-flight.
+Heavily penalizes the policy if the robot has not reached an inverted torso orientation (projected gravity $g_z > 0$) by mid-flight:
+
+$$
+R_{\text{invert}} = -\mathbb{I}(g_z < 0.0) \cdot \mathbb{I}(0.45 \le \text{phase} < 0.65)
+$$
+
 3. **Mid-Flight Termination (`mid_flight_fail`)**:
-   At $\text{phase} = 0.55$, if the robot is not inverted ($g_z < -0.2$), the episode terminates immediately with a $-200.0$ penalty.
+At $\text{phase} = 0.55$, if the robot is not inverted ($g_z < -0.2$), the episode terminates immediately with a $-200.0$ penalty.
 
 #### F. Full $360^\circ$ Heading Randomization & Relative Landing Alignment
 * **Spawn Randomization**: Initial heading is sampled uniformly across $[-\pi, \pi]$ (`yaw: (-math.pi, math.pi)`).
@@ -334,8 +341,12 @@ Credit propagates backwards through time via **Temporal Difference (TD) learning
 2. The **Critic network** ($V(s)$) observes state $s_{65}$ (a level mid-air tuck with zero roll rate) and learns: *"Whenever the robot is in this specific orientation at tick 65, it reliably collects large rewards 10 ticks later."* Therefore, $V(s_{65})$ is updated to a high value.
 3. Next, the Critic evaluates state $s_{20}$ (explosive takeoff thrust) and learns: *"Whenever the legs generate high vertical velocity $+v_z$ at tick 20, the robot transitions into that high-value state at tick 65."*
 4. By training the Critic on these transitions, **the Critic acts as an internal value compass**. When the Actor chooses joint actions at tick 10, it is guided by the Advantage:
-   $$\text{Advantage} = R_t - V(s_t)$$
-   The Actor learns that crouching and launching straight upward at tick 10 leads to massive payouts at tick 75.
+
+$$
+\text{Advantage} = R_t - V(s_t)
+$$
+
+The Actor learns that crouching and launching straight upward at tick 10 leads to massive payouts at tick 75.
 
 ### 6.4 Instantaneous Penalties as Numerical Integration
 In physics and optimal control, evaluating a penalty 50 times per second is equivalent to **numerical Riemann integration** over the episode:
