@@ -182,7 +182,7 @@ Quadruped policies often discover a "cowardly" local optimum where standing stil
 Penalizes having feet on the floor during the ballistic flight phase, compelling the robot to commit to liftoff:
 
 $$
-R_{\text{grounded}} = -N_{\text{feet\_contact}} \cdot \mathbb{I}(0.35 \le \text{phase} < 0.70)
+R_{\text{grounded}} = -N_{\text{feet\\_contact}} \cdot \mathbb{I}(0.35 \le \text{phase} < 0.70)
 $$
 
 2. **Failure to Invert Penalty (`failure_to_invert`, weight $-6.0$)**:
