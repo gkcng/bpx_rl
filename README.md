@@ -221,7 +221,7 @@ In Isaac Sim 5.x, WebRTC streaming is handled by the official **Isaac Sim WebRTC
    ```
 2. Download to your **Mac**:
    ```bash
-   scp user@<EXTERNAL_IP>:~/mirrorme_rl_train/logs/bpx_flat/<RUN_FOLDER>/videos/*.mp4 ~/Downloads/
+   gcloud compute scp [USER]@isaac-sim-trainer:~/mirrorme_rl_train/logs/bpx_flat/<RUN_FOLDER>/videos/*.mp4 ~/Downloads/ --tunnel-through-iap
    ```
    Open the MP4 file in QuickTime.
 
